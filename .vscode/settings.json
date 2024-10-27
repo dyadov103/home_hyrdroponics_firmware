@@ -6,5 +6,14 @@
         "interface/ftdi/esp32_devkitj_v1.cfg",
         "target/esp32.cfg"
     ],
-    "idf.pythonBinPathWin": "python"
+    "idf.pythonBinPathWin": "python",
+    "idf.portWin": "COM5",
+    "idf.flashType": "UART",
+    "files.associations": {
+        "nvs_flash.h": "c",
+        "esp_wifi.h": "c",
+        "esp_system.h": "c",
+        "esp_log.h": "c",
+        "gpio.h": "c"
+    }
 }

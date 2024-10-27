@@ -11,12 +11,25 @@
 #include "lwip/sys.h" //system applications for light weight ip apps
 #include "driver/gpio.h"
 #include "wifi.h"
-#include "serial.h"
+#include "led.h"
+#include "definitions.h"
 
+TaskHandle_t toggle_thread_handler = NULL; // Task handle for the LED toggle task
 
+void toggle_led_task(void *pvParameter) {
+    // Configure the LED_PIN as an output GPIO
+    esp_rom_gpio_pad_select_gpio(LED_PIN);
+    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
 
-void app_main(void) {
-    nvs_flash_init();
-    wifi_connection();
-    gen_serial();
+    int led_state = 0;
+
+    while (1) {
+        // Toggle the LED state
+        led_state = !led_state;
+        printf("toggling led %d\n\n", led_state);
+        gpio_set_level(LED_PIN, !led_state);
+
+        // Wait for 500 ms
+        vTaskDelay(500 / portTICK_PERIOD_MS);
+    }
 }
