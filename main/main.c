@@ -12,11 +12,18 @@
 #include "driver/gpio.h"
 #include "wifi.h"
 #include "serial.h"
-
+#include "led.h"
+#include "bluetooth.h"
 
 
 void app_main(void) {
     nvs_flash_init();
-    wifi_connection();
-    gen_serial();
+
+    esp_bt_controller_config_t bt_cfg = BT_CONTROLLER_INIT_CONFIG_DEFAULT();
+    ESP_ERROR_CHECK(esp_bt_controller_init(&bt_cfg));
+    ESP_ERROR_CHECK(esp_bt_controller_enable(ESP_BT_MODE_BLE));
+
+    // wifi_connection();
+    // gen_serial();
+    ble_server_init();
 }

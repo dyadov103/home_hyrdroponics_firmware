@@ -7,5 +7,6 @@
 
 #define SSID ""
 #define PASSWORD ""  //removed for security purposes
+#define WIFI_CON_STATUS 200
 
 #endif

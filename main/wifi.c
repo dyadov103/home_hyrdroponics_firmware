@@ -16,16 +16,17 @@
 const char *ssid = SSID;
 const char *pass = PASSWORD;
 int retry_num=0;
+int fade_delay = WIFI_CON_STATUS;
 
 static void wifi_event_handler(void *event_handler_arg, esp_event_base_t event_base, int32_t event_id,void *event_data){
 if(event_id == WIFI_EVENT_STA_START)
 {
-  xTaskCreate(&toggle_led_task, "toggle_led_task", 2048, NULL, 5, &toggle_thread_handler);
+  xTaskCreate(led_fade, "fade_led_task", 2048, &fade_delay, 5, &fade_thread_handler);
   printf("WIFI CONNECTING....\n");
 }
 else if (event_id == WIFI_EVENT_STA_CONNECTED)
 {
-  vTaskDelete(toggle_thread_handler);
+  stop_fade = true;
   printf("WiFi CONNECTED\n");
 }
 else if (event_id == WIFI_EVENT_STA_DISCONNECTED)

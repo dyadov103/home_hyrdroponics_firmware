@@ -4,8 +4,9 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 
-extern TaskHandle_t toggle_thread_handler;
-void toggle_led_task(void *pvParameter);
+extern bool stop_fade;
+extern TaskHandle_t fade_thread_handler;
+void led_fade(void *pvParameter);
 
 
 #endif // LED_H

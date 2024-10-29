@@ -1,35 +1,62 @@
-#include <stdio.h> //for basic printf commands
-#include <string.h> //for handling strings
-#include "freertos/FreeRTOS.h" //for delay,mutexs,semphrs rtos operations
-#include "esp_system.h" //esp_init funtions esp_err_t 
-#include "esp_wifi.h" //esp_wifi_init functions and wifi operations
-#include "esp_log.h" //for showing logs
-#include "esp_event.h" //for wifi event
-#include "esp_mac.h"   // For ESP_MAC_WIFI_STA
-#include "nvs_flash.h" //non volatile storage
-#include "lwip/err.h" //light weight ip packets error handling
-#include "lwip/sys.h" //system applications for light weight ip apps
-#include "driver/gpio.h"
-#include "wifi.h"
-#include "led.h"
-#include "definitions.h"
+#include <stdio.h>
+#include "driver/ledc.h"
+#include "esp_err.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
-TaskHandle_t toggle_thread_handler = NULL; // Task handle for the LED toggle task
+#define LED_PIN GPIO_NUM_2  // Set this to your LED GPIO pin if different
+#define LEDC_TIMER LEDC_TIMER_0
+#define LEDC_MODE LEDC_LOW_SPEED_MODE
+#define LEDC_CHANNEL LEDC_CHANNEL_0
 
-void toggle_led_task(void *pvParameter) {
-    // Configure the LED_PIN as an output GPIO
-    esp_rom_gpio_pad_select_gpio(LED_PIN);
-    gpio_set_direction(LED_PIN, GPIO_MODE_OUTPUT);
+TaskHandle_t fade_thread_handler = NULL;
+bool stop_fade = 0;
 
-    int led_state = 0;
+
+void led_fade(void *pvParameter) {
+
+    int fade_time_ms = *(int *)pvParameter;
+
+    // Configure LED PWM Timer
+    ledc_timer_config_t ledc_timer = {
+        .speed_mode       = LEDC_MODE,
+        .duty_resolution  = LEDC_TIMER_13_BIT,
+        .timer_num        = LEDC_TIMER,
+        .freq_hz          = 5000,  // Set PWM frequency to 5 kHz
+        .clk_cfg          = LEDC_AUTO_CLK
+    };
+    ledc_timer_config(&ledc_timer);
+
+    // Configure LED PWM Channel
+    ledc_channel_config_t ledc_channel = {
+        .gpio_num       = LED_PIN,
+        .speed_mode     = LEDC_MODE,
+        .channel        = LEDC_CHANNEL,
+        .intr_type      = LEDC_INTR_FADE_END,
+        .timer_sel      = LEDC_TIMER,
+        .duty           = 0,          // Initial duty cycle
+        .hpoint         = 0
+    };
+    ledc_channel_config(&ledc_channel);
+
+    // Enable fade function
+    ledc_fade_func_install(0);
 
     while (1) {
-        // Toggle the LED state
-        led_state = !led_state;
-        printf("toggling led %d\n\n", led_state);
-        gpio_set_level(LED_PIN, !led_state);
+        // Fade in
+        ledc_set_fade_time_and_start(LEDC_MODE, LEDC_CHANNEL, 8191, fade_time_ms, LEDC_FADE_NO_WAIT);
+        vTaskDelay(pdMS_TO_TICKS(fade_time_ms));
 
-        // Wait for 500 ms
-        vTaskDelay(500 / portTICK_PERIOD_MS);
+        // Fade out
+        ledc_set_fade_time_and_start(LEDC_MODE, LEDC_CHANNEL, 0, fade_time_ms, LEDC_FADE_NO_WAIT);
+        vTaskDelay(pdMS_TO_TICKS(fade_time_ms));
+
+        if (stop_fade) {
+            ledc_set_duty(LEDC_MODE, LEDC_CHANNEL, 0);
+            ledc_update_duty(LEDC_MODE, LEDC_CHANNEL);
+            vTaskDelete(NULL);
+            stop_fade = false;
+            break;
+        }
     }
 }
